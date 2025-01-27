@@ -1,0 +1,47 @@
+GET /daily-menus
+
+out
+[
+{main_name
+soup_name
+desert_name }, ..
+]
+
+//budou 2x daily menu
+
+
+GET /all-for-type
+
+in
+{
+type_id
+}
+
+out
+[
+{name, id},..
+]
+
+
+GET /all-types
+
+out
+[
+{type_id, type_name}, ..
+]
+
+POST /register-review
+
+in
+{
+dash_id,
+user_id,
+portion_size,   //float
+temperature,  //float
+visual, //float
+taste, //float
+smell //float
+extra_payment //int
+
+}
+
