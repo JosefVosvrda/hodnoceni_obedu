@@ -19,7 +19,7 @@ class ClientGateway {
         return new Promise((resolve, reject) => {
             conn.query("Select id, newsletter from User where username = ?", [username], (err, res) => {
                 if(err) reject(err);
-                resolve(res.insertId)
+                resolve(res?.[0])
             })
         })
     }

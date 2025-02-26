@@ -1,22 +1,31 @@
 ﻿const conn = require("../dbconn.js");
 
-class DishGateway {
+class ReviewGateway {
     static getAllReviewsForUser(user_id) {
         return new Promise((resolve, reject) => {
-            conn.query("Select Dish.id as dish_id, Dish.name as dish_name, DishType.id as dish_type_id," +
-                " DishType.name as dish_type_name, Review.id as review_id," +
-                "Review.temperature as temperature, Review.portion_size, Review.visual, Review.taste, Review.taste Review.extra_payment, Review.review_date " +
-                "from Review inner join Dish on review.dish_id = Dish.id inner join DishType.id on Dish.dish_type_id = DishType.id" +
-                " where Review.user_id = ?", [user_id], (err, res) => {
+            conn.query("select Review.*, Lunch.*  from Review inner join Lunch on Review.lunch_id = Lunch.id where Review.user_id = ?" , [user_id], (err, res) => {
+                if(err) reject(err)
+                resolve(res);
+            })
+        });
+    }
+
+    static getAllReviewsForLunch(lunch_id) {
+        return new Promise((resolve, reject) => {
+            conn.query("select Review.*, Lunch.*  from Review inner join Lunch on Review.lunch_id = Lunch.id where Review.lunch_id = ?" , [lunch_id], (err, res) => {
+                if(err) reject(err)
                 resolve(res);
             })
         });
     }
 
 
-    static createReview(dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment) {
+
+
+    static createReview(lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment, overall_score) {
         return new Promise((resolve, reject) => {
-            conn.query("Insert into Review(dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment, review_date) values(?,?,?,?,?,?,?,?,curdate())", [dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment], (err, res) => {
+            conn.query("Insert into Review(lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment,overall_score) values(?,?,?,?,?,?,?,?,?,?,?)", [lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment, overall_score], (err, res) => {
+                if(err) reject(err)
                 resolve(res)
             })
         })
@@ -30,8 +39,6 @@ class DishGateway {
             })
         });
     }
-
-
 }
 
-module.exports = DishGateway;
+module.exports = ReviewGateway;

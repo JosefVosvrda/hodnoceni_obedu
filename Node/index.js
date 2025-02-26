@@ -6,29 +6,31 @@ app.use(express.json())
 app.use(express.urlencoded({extended: false}));
 
 const reviewGW = require("./gateways/reviewGateway.js");
-const dishGW = require("./gateways/dishGateway");
+const lunchGW = require("./gateways/lunchGateway");
 const clientGW = require("./gateways/clientGateway");
+
+
+const mailUtils = require("./mailUtils");
+
 const {query} = require("./dbconn");
 
 const jwt = require("jsonwebtoken");
 
-
+const secretKey = "skrumaz";
 
 let lunchArr = []
 
 
+app.post("/login", async (req, res) => {
 
-app.post("/login", async (req, res) =>
-{
-
-    const { username, password } = req.query;
+    const {username, password} = req.body;
 
     let headers = new Headers();
-    headers.append("Host","strav.nasejidelna.cz")
-    headers.append("User-Agent","curl/8.9.1");
+    headers.append("Host", "strav.nasejidelna.cz")
+    headers.append("User-Agent", "curl/8.9.1");
 
 
-    let crsfres = await  fetch("https://strav.nasejidelna.cz/0341/login", { method: "GET", headers: headers })
+    let crsfres = await fetch("https://strav.nasejidelna.cz/0341/login", {method: "GET", headers: headers})
 
     let txt = await crsfres.text();
     let h = await crsfres.headers;
@@ -36,161 +38,185 @@ app.post("/login", async (req, res) =>
     let token = cookie.split(";")[0].split("=")[1];
 
 
-    let load =  new URLSearchParams({
+    let load = new URLSearchParams({
         'j_username': username,
         'j_password': password,
         'terminal': 'false',
-        '_csrf':token,
+        '_csrf': token,
         "targetUrl": "/faces/secured/main.jsp"
     }).toString();
     let resauth = await fetch('https://strav.nasejidelna.cz/0341/j_spring_security_check',
         {
-        method: 'POST',
-        headers:{
-            'Host': 'strav.nasejidelna.cz',
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:134.0) Gecko/20100101 Firefox/134.0",
-            "Content-Type": "application/x-www-form-urlencoded",
-            "Origin": "https://strav.nasejidelna.cz",
-            "Referer": "https://strav.nasejidelna.cz/0341/login",
-            "Cookie": cookie,
-        },
-        body:load,
-        redirect: "manual"
-    });
+            method: 'POST',
+            headers: {
+                'Host': 'strav.nasejidelna.cz',
+                "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:134.0) Gecko/20100101 Firefox/134.0",
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Origin": "https://strav.nasejidelna.cz",
+                "Referer": "https://strav.nasejidelna.cz/0341/login",
+                "Cookie": cookie,
+            },
+            body: load,
+            redirect: "manual"
+        });
 
     let header = await resauth.headers;
-    let authorized =   !header.get("Location").includes("login_error");
+    let authorized = !header.get("Location").includes("login_error");
 
 
-    if(!authorized) res.status(401).json({msg:"Incorrect credentials"});
+    if (!authorized) return res.status(401).json({msg: "Incorrect credentials"});
 
+
+    let id;
+    let newsletter = false;
     let existingUser = await clientGW.getUser(username);
-    if(!existingUser)
-    {
-        let id = await clientGW.createUser(username);
+    if (!existingUser) {
+        id = await clientGW.createUser(username);
+    } else {
+        id = existingUser.id;
+        newsletter = Boolean(Buffer.from(existingUser.newsletter).readInt8());
     }
 
 
-    let jwtSecretKey = "cau";
     let data = {
-        user
+        user_id: id
     }
-    const usertoken = jwt.sign(data, jwtSecretKey);
 
-    res.status(200).json({token: token});
+    const usertoken = jwt.sign(data, secretKey);
+    return res.status(200).cookie("token",usertoken).json({newsletter: newsletter});
 
-    return res.status(200).json( authorized);
+})
+
+
+app.post("/register-daily-menu", async (req, res) => {
+    const {lunches} = req.body;
+    try {
+
+        let desc1 = lunches[0].description;
+        let desc2 = lunches[1].description;
+        await lunchGW.registerDailyLunches(desc1,desc2);
+        res.status(200).json({msg: "OK"});
+
+    } catch (er) {
+        res.status(500).json(er);
+    }
+})
+
+
+const apipassword = "skrumaz"
+app.post("/newsletter", async (req,res) =>
+{
+    const {lunches, email, subject, text} = req.body;
+
+    req.body.password = apipassword;
+
+    res.status(302).redirect("http://s-DD-C4a-24.dev.spsejecna.net:21168/firm/sendmail")
 
 })
 
 
 
-app.post("/register-daily-menu", async (req,res) =>
-{
-    const {dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment} = req.body;
-    try
-    {
+
+
+
+app.get("/daily-menu", async (req, res) => {
+    try {
+        let result = await lunchGW.getAllForDishType(req.params.id);
+        res.status(200).json(result);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+
+})
+
+app.get("/summary/:id", async (req, res) => {
+    try {
+        //let result = await lunchGW.(req.params.id);
+        res.status(200).json(result);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+
+})
+
+
+app.get("/summary", async (req, res) => {
+    try {
+        let result = await lunchGW.getAllForDishType(req.params.id);
+        res.status(200).json(result);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+
+})
+
+
+
+app.get("/review/user",authenticateToken, async (req, res) => {
+    try {
+        let id = req.body.user_id;
+        let result = await reviewGW.getAllReviewsForUser(id);
+
+        res.status(200).json(result);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+
+})
+
+app.get("/review/:dish_id",authenticateToken, async (req, res) => {
+    try {
+        let id = req.params.dish_id;
+        let result = await reviewGW.getAllReviewsForLunch(id);
+
+        res.status(200).json(result);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+
+})
+
+
+
+app.get("/lunches", async (req, res) => {
+    try {
+        let result = await lunchGW.getPastWeekLunches();
+        res.status(200).json(result);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+})
+
+
+app.post("/review", authenticateToken, async (req, res) => {
+    const {lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment} = req.body;
+    try {
         let amount = await reviewGW.getUserReviewCountForToday(user_id);
-        if(amount > 3) return res.status(400).json({msg:"Can't insert more than 3 reviews for the day"})
+        if (amount > 3) return res.status(400).json({msg: "Can't insert more than 3 reviews for the day"})
 
-        await reviewGW.createReview(dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment);
+        await reviewGW.createReview(lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment);
         res.status(200).json({msg: "OK"});
 
-    }catch (er)
-    {
+    } catch (er) {
         res.status(500).json(er);
     }
 })
 
 
 
-app.get("/daily-menu", async  (req, res) =>
-{
-    try
-    {
-        let result = await dishGW.getAllForDishType(req.params.id);
-        res.status(200).json(result);
-    }catch (er)
-    {
-        res.status(500).json(er);
-    }
 
-})
+function authenticateToken(req, res, next) {
 
-app.get("/all-for-type/:id", async  (req, res) =>
-{
-    try
-    {
-        let result = await dishGW.getAllForDishType(req.params.id);
-        res.status(200).json(result);
-    }catch (er)
-    {
-        res.status(500).json(er);
-    }
+    const token = req.cookies.get("token");
 
-})
+    jwt.verify(token, process.env.JWT_KEY, (err, user) => {
+        if (err) return res.status(400).json({msg: err});
 
-
-app.get("/all-types", async  (req, res) =>
-{
-    try
-    {
-        let result = await dishGW.getAllTypes();
-
-        res.status(200).json(result);
-    }catch (er)
-    {
-        res.status(500).json(er);
-    }
-
-})
-
-
-app.get("/all-dishes", async  (req, res) =>
-{
-    try
-    {
-        let result = await dishGW.getAllDishes();
-        res.status(200).json(result);
-    }catch (er)
-    {
-        res.status(500).json(er);
-    }
-})
-
-
-app.post("/create-review", async  (req, res) =>
-{
-    const {dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment} = req.body;
-    try
-    {
-        let amount = await reviewGW.getUserReviewCountForToday(user_id);
-        if(amount > 3) return res.status(400).json({msg:"Can't insert more than 3 reviews for the day"})
-
-        await reviewGW.createReview(dish_id, user_id, portion_size, temperature, visual, taste, smell, extra_payment);
-        res.status(200).json({msg: "OK"});
-
-    }catch (er)
-    {
-        res.status(500).json(er);
-    }
-})
-
-
-app.get("/get-all-reviews", async  (req, res) =>
-{
-    const {user_id} = req.body;
-    try
-    {
-        let res = await reviewGW.getAllReviewsForUser(user_id);
-
-        res.status(200).json({msg: "OK"});
-
-    }catch (er)
-    {
-        res.status(500).json(er);
-    }
-})
+        let decoded = jwt.decode(token, {complete: true, json: true});
+        req.body.client_id = decoded?.payload?.client_id;
+        next();
+    })
+}
 
 
 app.listen(8080);
