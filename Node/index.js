@@ -7,8 +7,10 @@ app.use(express.urlencoded({extended: false}));
 
 const reviewGW = require("./gateways/reviewGateway.js");
 const dishGW = require("./gateways/dishGateway");
+const clientGW = require("./gateways/clientGateway");
+const {query} = require("./dbconn");
 
-
+const jwt = require("jsonwebtoken");
 
 
 
@@ -19,32 +21,65 @@ let lunchArr = []
 app.post("/login", async (req, res) =>
 {
 
-    const { username, password } = req.body;
+    const { username, password } = req.query;
 
-    let crsfres = await  fetch(" https://strav.nasejidelna.cz/0341/login")
-    let token = crsfres.headers.getSetCookie()[0].split("=")[1];
+    let headers = new Headers();
+    headers.append("Host","strav.nasejidelna.cz")
+    headers.append("User-Agent","curl/8.9.1");
 
 
+    let crsfres = await  fetch("https://strav.nasejidelna.cz/0341/login", { method: "GET", headers: headers })
 
-    var resauth = await fetch('https://example.com/login', {
+    let txt = await crsfres.text();
+    let h = await crsfres.headers;
+    let cookie = h.get("Set-Cookie");
+    let token = cookie.split(";")[0].split("=")[1];
+
+
+    let load =  new URLSearchParams({
+        'j_username': username,
+        'j_password': password,
+        'terminal': 'false',
+        '_csrf':token,
+        "targetUrl": "/faces/secured/main.jsp"
+    }).toString();
+    let resauth = await fetch('https://strav.nasejidelna.cz/0341/j_spring_security_check',
+        {
         method: 'POST',
         headers:{
             'Host': 'strav.nasejidelna.cz',
             "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:134.0) Gecko/20100101 Firefox/134.0",
             "Content-Type": "application/x-www-form-urlencoded",
             "Origin": "https://strav.nasejidelna.cz",
-            "Referer": "https://strav.nasejidelna.cz/0341/login"
+            "Referer": "https://strav.nasejidelna.cz/0341/login",
+            "Cookie": cookie,
         },
-        body: new URLSearchParams({
-            'j_username': username,
-            'j_password': password,
-            'terminal': 'false',
-            '_csrf':token
-        })
+        body:load,
+        redirect: "manual"
     });
 
+    let header = await resauth.headers;
+    let authorized =   !header.get("Location").includes("login_error");
 
-    return res.status(resauth.status).json( await resauth.json());
+
+    if(!authorized) res.status(401).json({msg:"Incorrect credentials"});
+
+    let existingUser = await clientGW.getUser(username);
+    if(!existingUser)
+    {
+        let id = await clientGW.createUser(username);
+    }
+
+
+    let jwtSecretKey = "cau";
+    let data = {
+        user
+    }
+    const usertoken = jwt.sign(data, jwtSecretKey);
+
+    res.status(200).json({token: token});
+
+    return res.status(200).json( authorized);
 
 })
 
@@ -66,6 +101,7 @@ app.post("/register-daily-menu", async (req,res) =>
         res.status(500).json(er);
     }
 })
+
 
 
 app.get("/daily-menu", async  (req, res) =>
