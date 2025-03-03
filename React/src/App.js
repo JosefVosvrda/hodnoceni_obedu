@@ -21,7 +21,7 @@ function App() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // Nutné pro práci s cookies
+         // Nutné pro práci s cookies
         body: JSON.stringify({ username, password }),
       });
       

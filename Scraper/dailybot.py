@@ -16,7 +16,7 @@ def scrape_menu():
         return []
 
     soup = BeautifulSoup(response.text, "html.parser")
-    meals = {"Ječná": []}  # jde upravit ale scrapuje to jenom pro jecnou cuz stepanska neni u nas
+    meals = {"lunches": []}  # jde upravit ale scrapuje to jenom pro jecnou cuz stepanska neni u nas
 
     # hleda podle datumu
     day_sections = soup.find_all("div", class_="jidelnicekDen")
@@ -53,22 +53,20 @@ def scrape_menu():
             description = ", ".join([span.text.strip() for span in description_elements])
             description = ' '.join(description.split())  # odstranovani mezer
 
-            meals["Ječná"].append({"date": menu_date, "description": description, "meal_number": meal_number, })
+            meals["lunches"].append({"date": menu_date, "description": description, "meal_number": meal_number, })
             counter += 1
             if counter == 2:
                 break
         if counter == 2:
             break
-    meals["Ječná"][0]["meal_number"] = 1
-    meals["Ječná"][1]["meal_number"] = 2
+    meals["lunches"][0]["meal_number"] = 1
+    meals["lunches"][1]["meal_number"] = 2
     return meals
 
 
 if __name__ == "__main__":
     menu = scrape_menu()
-    response = Response(
-        response=json.dumps(menu, ensure_ascii=False),
-        status=200,
-        content_type='application/json; charset=utf-8'
-    )
-    print(response.get_json())
+    headers = {'Content-Type': 'application/json; charset=utf-8'}
+    response = requests.post("http://127.0.0.1:8080/register-daily-menu", json=menu, headers=headers)
+    print(response.status_code)
+

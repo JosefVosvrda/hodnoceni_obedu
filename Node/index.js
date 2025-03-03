@@ -1,6 +1,14 @@
 const express = require("express");
 
 const app = express();
+
+const fs = require("fs");
+const cors = require("cors");
+let cookies = require("cookie-parser");
+app.use(cors())
+app.use(cookies());
+
+
 //app.use(express.static(path.join(__dirname, "public")));
 app.use(express.json())
 app.use(express.urlencoded({extended: false}));
@@ -9,14 +17,13 @@ const reviewGW = require("./gateways/reviewGateway.js");
 const lunchGW = require("./gateways/lunchGateway");
 const clientGW = require("./gateways/clientGateway");
 
-
-const mailUtils = require("./mailUtils");
+const privateKey = fs.readFileSync('/home/jouda/private.key', 'utf8');
 
 const {query} = require("./dbconn");
 
 const jwt = require("jsonwebtoken");
 
-const secretKey = "skrumaz";
+//const secretKey = "skrumaz";
 
 let lunchArr = []
 
@@ -69,7 +76,7 @@ app.post("/login", async (req, res) => {
 
     let id;
     let newsletter = false;
-    let existingUser = await clientGW.getUser(username);
+    let existingUser = await clientGW.getUserByName(username);
     if (!existingUser) {
         id = await clientGW.createUser(username);
     } else {
@@ -82,8 +89,8 @@ app.post("/login", async (req, res) => {
         user_id: id
     }
 
-    const usertoken = jwt.sign(data, secretKey);
-    return res.status(200).cookie("token",usertoken).json({newsletter: newsletter});
+    const usertoken = jwt.sign(data, privateKey);
+    return res.status(200).cookie("token", usertoken).json({newsletter: newsletter});
 
 })
 
@@ -94,7 +101,7 @@ app.post("/register-daily-menu", async (req, res) => {
 
         let desc1 = lunches[0].description;
         let desc2 = lunches[1].description;
-        await lunchGW.registerDailyLunches(desc1,desc2);
+        await lunchGW.registerDailyLunches(desc1, desc2);
         res.status(200).json({msg: "OK"});
 
     } catch (er) {
@@ -104,19 +111,14 @@ app.post("/register-daily-menu", async (req, res) => {
 
 
 const apipassword = "skrumaz"
-app.post("/newsletter", async (req,res) =>
-{
-    const {lunches, email, subject, text} = req.body;
-
-    req.body.password = apipassword;
-
-    res.status(302).redirect("http://s-DD-C4a-24.dev.spsejecna.net:21168/firm/sendmail")
-
-})
-
-
-
-
+// app.post("/newsletter/send", async (req, res) => {
+//     const {lunches, email, subject, text} = req.body;
+//
+//     req.body.password = apipassword;
+//
+//     res.status(302).redirect("http://s-DD-C4a-24.dev.spsejecna.net:21168/firm/sendmail")
+//
+// })
 
 
 app.get("/daily-menu", async (req, res) => {
@@ -151,10 +153,11 @@ app.get("/summary", async (req, res) => {
 })
 
 
-
-app.get("/review/user",authenticateToken, async (req, res) => {
+app.get("/review/user/", authenticateToken, async (req, res) => {
     try {
         let id = req.body.user_id;
+
+
         let result = await reviewGW.getAllReviewsForUser(id);
 
         res.status(200).json(result);
@@ -164,7 +167,7 @@ app.get("/review/user",authenticateToken, async (req, res) => {
 
 })
 
-app.get("/review/:dish_id",authenticateToken, async (req, res) => {
+app.get("/review/:dish_id", authenticateToken, async (req, res) => {
     try {
         let id = req.params.dish_id;
         let result = await reviewGW.getAllReviewsForLunch(id);
@@ -177,24 +180,43 @@ app.get("/review/:dish_id",authenticateToken, async (req, res) => {
 })
 
 
-
 app.get("/lunches", async (req, res) => {
     try {
         let result = await lunchGW.getPastWeekLunches();
         res.status(200).json(result);
     } catch (er) {
-        res.status(500).json(er);
+        res.status(500).json(er.message);
     }
 })
 
 
 app.post("/review", authenticateToken, async (req, res) => {
-    const {lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment} = req.body;
+    const {
+        lunch_id,
+        user_id,
+        soup_quality,
+        soup_comment,
+        main_taste,
+        main_temperature,
+        main_look,
+        main_portion,
+        main_comment,
+        dessert_quality,
+        dessert_comment
+    } = req.body;
     try {
-        let amount = await reviewGW.getUserReviewCountForToday(user_id);
-        if (amount > 3) return res.status(400).json({msg: "Can't insert more than 3 reviews for the day"})
 
-        await reviewGW.createReview(lunch_id, user_id, soup_quality, main_taste, main_temperature,main_look, main_portion, main_comment, desert_quality, desert_comment);
+        let todayDate = new Date().toJSON().slice(0, 10);
+
+
+        let amount = await reviewGW.getUserReviewCountForToday(user_id, todayDate);
+        if (amount != 0) return res.status(400).json({msg: "Can't insert more than 1 review for the day"})
+
+        let overall_score = ((+soup_quality + +main_taste + +main_temperature + +main_look + +main_portion + +dessert_quality)) / 6;
+
+        await reviewGW.createReview(lunch_id, user_id, soup_quality, soup_comment, main_taste, main_temperature, main_look, main_portion, main_comment, dessert_quality, dessert_comment, overall_score, todayDate);
+
+
         res.status(200).json({msg: "OK"});
 
     } catch (er) {
@@ -203,17 +225,39 @@ app.post("/review", authenticateToken, async (req, res) => {
 })
 
 
+app.post("/newsletter", authenticateToken, async (req, res) => {
+    let {newsletter, user_id} = req.body;
+    try {
+        newsletter =""+newsletter;
+        await clientGW.updateUserNewsletter(newsletter, user_id);
+        res.status(200).json({msg: "OK"});
+    } catch (er) {
+        res.status(500).json(er);
+    }
+});
+
+app.get("/newsletter", authenticateToken, async (req, res) => {
+    const { user_id} = req.body;
+    try {
+
+        let news = await clientGW.getUserNewsletter(user_id);
+
+        news.newsletter = Boolean(Buffer.from(news.newsletter).readInt8());
+        return res.status(200).json(news);
+    } catch (er) {
+        res.status(500).json(er);
+    }
+});
 
 
 function authenticateToken(req, res, next) {
 
-    const token = req.cookies.get("token");
+    const {token} = req.cookies
 
-    jwt.verify(token, process.env.JWT_KEY, (err, user) => {
-        if (err) return res.status(400).json({msg: err});
+    jwt.verify(token, privateKey, (err, user) => {
+        if (err) return res.status(400).json({msg: err, cookie: req.cookies});
 
-        let decoded = jwt.decode(token, {complete: true, json: true});
-        req.body.client_id = decoded?.payload?.client_id;
+        req.body.user_id = user.user_id;
         next();
     })
 }

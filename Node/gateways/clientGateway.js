@@ -15,10 +15,10 @@ class ClientGateway {
     }
 
 
-    static getUser(username) {
+    static getUserNewsletter(user_id) {
         return new Promise((resolve, reject) => {
-            conn.query("Select id, newsletter from User where username = ?", [username], (err, res) => {
-                if(err) reject(err);
+            conn.query("Select username, newsletter from User where id = ?", [user_id], (err, res) => {
+                if (err) reject(err);
                 resolve(res?.[0])
             })
         })
@@ -28,17 +28,25 @@ class ClientGateway {
     static createUser(username) {
         return new Promise((resolve, reject) => {
             conn.query("Insert into User(username, newsletter) values(?,?)", [username, false], (err, res) => {
-                if(err) reject(err);
+                if (err) reject(err);
                 resolve(res.insertId)
             })
         })
     }
 
-
-    static updateUserNewsletter(username, newsletter) {
+    static getUserByName(username) {
         return new Promise((resolve, reject) => {
-            conn.query("Update User set newsletter = ? where username = ?", [username, newsletter], (err, res) => {
-                if(err) reject(err);
+            conn.query("Select * from User where username = ?", [username], (err, res) => {
+                if (err) reject(err);
+                resolve(res?.[0])
+            })
+        })
+    }
+
+    static updateUserNewsletter(newsletter, user_id) {
+        return new Promise((resolve, reject) => {
+            conn.query("Update User set newsletter = ? where id = ?", [newsletter === 'true' ? 1 : 0, user_id], (err, res) => {
+                if (err) reject(err);
                 resolve(res);
             })
         });
