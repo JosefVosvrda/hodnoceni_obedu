@@ -6,9 +6,9 @@ class LunchGateway {
     static getPastWeekLunches(){
         return new Promise((resolve, reject) => {
             let date = new Date().toJSON().slice(0, 10);
-            let past_date = new Date(date.getMilliseconds() - 604_800_800).toJSON().slice(0, 10) //week offset;
+            let past_date = new Date(new Date().getTime() - 604_800_800).toJSON().slice(0, 10) //week offset;
 
-            conn.query("select * from Lunch where serving_date between ? and ?", [date, past_date], (err, res) => {
+            conn.query("select * from Lunch where serving_date between ? and ?", [past_date,date], (err, res) => {
                 if(err) reject(err)
                 resolve(res);
             })
