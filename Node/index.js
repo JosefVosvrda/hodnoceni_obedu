@@ -131,21 +131,40 @@ app.get("/daily-menu", async (req, res) => {
 
 })
 
-app.get("/summary/:id", async (req, res) => {
+app.get("/summary/:lunch_id", async (req, res) => {
     try {
-        //let result = await lunchGW.(req.params.id);
-        res.status(200).json(result);
+        let id = req.params.lunch_id;
+        let overallScore = await lunchGW.getScoreSummaryForLunch(id)
+        overallScore.serving_date = new Date(overallScore.serving_date).toJSON().slice(0,10);
+
+        let comments = await lunchGW.getCommentsForLunch(id)
+        let soup_comments = [];
+        let main_comments = [];
+        let dessert_comments = [];
+
+        for (let line of comments)
+        {
+            soup_comments.push(line?.soup_comment);
+            main_comments.push(line?.main_comment);
+            dessert_comments.push(line?.dessert_comment)
+        }
+        overallScore.soup_comments = soup_comments;
+        overallScore.main_comments = main_comments;
+        overallScore.dessert_comments = dessert_comments;
+
+        res.status(200).json(overallScore);
     } catch (er) {
-        res.status(500).json(er);
+        res.status(500).json(er.message);
     }
 
 })
 
 
-app.get("/summary", async (req, res) => {
+app.get("/summary-lunches", async (req, res) => {
+
     try {
-        let result = await lunchGW.getAllForDishType(req.params.id);
-        res.status(200).json(result);
+        let result = await lunchGW.getOverallScoreSummaryForAllLunches();
+        res.status(200).send(result);
     } catch (er) {
         res.status(500).json(er);
     }
