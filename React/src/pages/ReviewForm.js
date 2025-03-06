@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
+import Cookies from "js-cookie";
 
 const ReviewForm = () => {
   const { id } = useParams();
@@ -27,11 +28,13 @@ const ReviewForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const { hasDesert, ...filteredData } = formData;
-    fetch("http://s-scrum-c4a-1.dev.spsejecna.net/review", {
+    fetch("/api/review", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "Set-Cookie" : `token=${Cookies.get("token")}; Path=/`,
       },
+      credentials: "include",
       body: JSON.stringify({ ...filteredData, lunch_id: id }),
     })
       .then(() => alert("Hodnocení odesláno!"))

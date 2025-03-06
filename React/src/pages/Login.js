@@ -1,19 +1,37 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Cookies from "js-cookie";
 
-const Login = ({ handleLogin }) => {
+const Login = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
+    setError(null);
+
     try {
-      await handleLogin(username, password);
-      navigate("/homepage");
-    } catch (err) {
-      setError("Přihlášení se nezdařilo. Zkontrolujte své údaje.");
+      const response = await fetch("/api/login", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        navigate("/homepage");
+        console.log(Cookies.get("token")) // Po přihlášení přesměruje uživatele
+      } else {
+        const data = await response.json();
+        setError(data.message || "Přihlášení se nezdařilo. Zkontrolujte své údaje.");
+      }
+    } catch (error) {
+      console.error("Chyba při přihlašování:", error);
+      setError("Chyba připojení k serveru.");
     }
   };
 
@@ -22,7 +40,7 @@ const Login = ({ handleLogin }) => {
       <div className="bg-white p-6 rounded-lg shadow-lg w-96">
         <h2 className="text-2xl font-bold mb-4 text-center">Přihlášení</h2>
         {error && <p className="text-red-500 text-sm mb-2">{error}</p>}
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleLogin}>
           <div className="mb-4">
             <label className="block text-gray-700 text-sm font-bold mb-2">Uživatelské jméno</label>
             <input

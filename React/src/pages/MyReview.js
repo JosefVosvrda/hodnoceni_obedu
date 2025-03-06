@@ -7,7 +7,7 @@ const MyReview = () => {
   const [review, setReview] = useState(null);
 
   useEffect(() => {
-    axios.get(`http://s-scrum-c4a-1.dev.spsejecna.net/review/${id}`, { withCredentials: true })
+    axios.get(`/api/review/${id}`, { withCredentials: true })
       .then(response => setReview(response.data))
       .catch(error => console.error("Error fetching review", error));
   }, [id]);

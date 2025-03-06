@@ -6,7 +6,9 @@ const Homepage = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://s-scrum-c4a-1.dev.spsejecna.net/lunches", {
+    fetch("/api/lunches", {
+      method: "GET",
+      credentials: "include",
     })
       .then(response => response.json())
       .then(data => {
