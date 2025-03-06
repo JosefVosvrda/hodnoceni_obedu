@@ -19,6 +19,10 @@ const MyReviews = () => {
       .catch((error) => console.error("Error fetching reviews", error));
   }, []);
 
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString("cs-CZ");
+  };
+
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Moje hodnocení</h1>
@@ -26,11 +30,11 @@ const MyReviews = () => {
         <div className="space-y-2">
           {reviews.map((review) => (
             <Link
-              key={review.review_id}
-              to={`/my-review/${review.review_id}`}
+              key={review.id}
+              to={`/my-review/${review.id}`}
               className="block p-4 bg-white shadow-md rounded-lg hover:bg-gray-100 transition"
             >
-              {review.date} - {review.lunch}
+              <span className="font-bold">{formatDate(review.serving_date)}</span> - {review.description}
             </Link>
           ))}
         </div>

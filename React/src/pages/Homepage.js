@@ -12,7 +12,9 @@ const Homepage = () => {
     })
       .then(response => response.json())
       .then(data => {
-        setLunches(data);
+        // Seřazení podle datumu od nejnovějšího k nejstaršímu
+        const sortedLunches = data.sort((a, b) => new Date(b.serving_date) - new Date(a.serving_date));
+        setLunches(sortedLunches);
         setLoading(false);
       })
       .catch(error => {
@@ -25,19 +27,24 @@ const Homepage = () => {
     return <p>Načítání obědů...</p>;
   }
 
-  const groupedLunches = lunches.reduce((acc, lunch) => {
-    const date = new Date(lunch.serving_date).toLocaleDateString("cs-CZ");
-    if (!acc[date]) acc[date] = [];
-    acc[date].push(lunch);
+  // Skupinování obědů podle data a seřazení dat od nejnovějšího po nejstarší
+  const groupedLunches = Object.keys(
+    lunches.reduce((acc, lunch) => {
+      const date = new Date(lunch.serving_date).toLocaleDateString("cs-CZ");
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(lunch);
+      return acc;
+    }, {})
+  ).sort((a, b) => new Date(b.split(".").reverse().join("-")) - new Date(a.split(".").reverse().join("-")))
+  .reduce((acc, date) => {
+    acc[date] = lunches.filter(lunch => new Date(lunch.serving_date).toLocaleDateString("cs-CZ") === date);
     return acc;
   }, {});
-
-  const sortedDates = Object.keys(groupedLunches).sort((a, b) => new Date(b) - new Date(a));
 
   return (
     <div className="container mx-auto p-4">
       <h1 className="text-2xl font-bold mb-4">Seznam obědů</h1>
-      {sortedDates.map(date => (
+      {Object.keys(groupedLunches).map(date => (
         <div key={date} className="mb-6">
           <h2 className="text-xl font-semibold mb-2">{date}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

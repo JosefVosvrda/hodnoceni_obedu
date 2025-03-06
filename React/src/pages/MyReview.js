@@ -1,14 +1,20 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
+import dayjs from "dayjs";
+import "dayjs/locale/cs";
+import localizedFormat from "dayjs/plugin/localizedFormat";
+
+dayjs.extend(localizedFormat);
+dayjs.locale("cs");
 
 const MyReview = () => {
   const { id } = useParams();
   const [review, setReview] = useState(null);
 
   useEffect(() => {
-    axios.get(`/api/review/${id}`, { withCredentials: true })
-      .then(response => setReview(response.data))
+    fetch(`/api/review/${id}`, { credentials: "include" })
+      .then(response => response.json())
+      .then(data => setReview(data[0])) // Přizpůsobení array response
       .catch(error => console.error("Error fetching review", error));
   }, [id]);
 
@@ -18,10 +24,10 @@ const MyReview = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Moje hodnocení</h1>
+      <h1 className="text-2xl font-bold mb-4">{review.description}</h1>
       <div className="bg-white shadow-md p-4 rounded-lg">
-        <h2 className="text-xl font-semibold mb-2">{review.lunch}</h2>
-        <p><strong>Datum:</strong> {review.date}</p>
+        <p><strong>Datum podávání:</strong> <span>{dayjs(review.serving_date).format("LL")}</span></p>
+        <p><strong>Datum hodnocení:</strong> <span>{dayjs(review.review_date).format("LL")}</span></p>
         <p><strong>Kvalita polévky:</strong> {review.soup_quality}</p>
         <p><strong>Komentář k polévce:</strong> {review.soup_comment}</p>
         <p><strong>Chuť hlavního jídla:</strong> {review.main_taste}</p>
@@ -29,12 +35,13 @@ const MyReview = () => {
         <p><strong>Vzhled hlavního jídla:</strong> {review.main_look}</p>
         <p><strong>Velikost porce:</strong> {review.main_portion}</p>
         <p><strong>Komentář k hlavnímu jídlu:</strong> {review.main_comment}</p>
-        {review.desert_quality && (
+        {review.dessert_quality !== null && (
           <>
-            <p><strong>Kvalita dezertu:</strong> {review.desert_quality}</p>
-            <p><strong>Komentář k dezertu:</strong> {review.desert_comment}</p>
+            <p><strong>Kvalita dezertu:</strong> {review.dessert_quality}</p>
+            <p><strong>Komentář k dezertu:</strong> {review.dessert_comment}</p>
           </>
         )}
+        <p><strong>Celkové hodnocení:</strong> {review.overall_score.toFixed(2)}</p>
       </div>
     </div>
   );

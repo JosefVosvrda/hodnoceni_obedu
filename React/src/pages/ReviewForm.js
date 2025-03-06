@@ -28,11 +28,15 @@ const ReviewForm = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     const { hasDesert, ...filteredData } = formData;
+
+    if (!hasDesert) {
+      filteredData.desert_quality = "0";
+    }
+
     fetch("/api/review", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Set-Cookie" : `token=${Cookies.get("token")}; Path=/`,
       },
       credentials: "include",
       body: JSON.stringify({ ...filteredData, lunch_id: id }),
