@@ -24,8 +24,8 @@ const MyReview = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">{review.description}</h1>
-      <div className="bg-white shadow-md p-4 rounded-lg">
+      <h1 className="text-3xl font-bold mb-4 max-w-2xl text-center mr-auto ml-auto">{review.description}</h1>
+      <div className="bg-white shadow-md p-4 rounded-s">
         <p><strong>Datum podávání:</strong> <span>{dayjs(review.serving_date).format("LL")}</span></p>
         <p><strong>Datum hodnocení:</strong> <span>{dayjs(review.review_date).format("LL")}</span></p>
         <p><strong>Kvalita polévky:</strong> {review.soup_quality}</p>

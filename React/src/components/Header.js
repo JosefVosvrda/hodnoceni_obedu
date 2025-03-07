@@ -47,7 +47,7 @@ const Header = () => {
   };
 
   return (
-    <nav className="bg-blue-500 p-4 text-white flex justify-between items-center shadow-md">
+    <nav className="bg-blue-500 p-4 text-white flex justify-between items-center shadow-md mb-10">
       <div className="flex space-x-4">
         <Link to="/homepage" className="hover:underline">Hlavní stránka</Link>
         <Link to="/my-reviews" className="hover:underline">Moje hodnocení</Link>

@@ -32,14 +32,14 @@ const Summaries = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Celkové hodnocení obědů</h1>
+      <h1 className="text-4xl font-bold mb-4 text-center">Celkové hodnocení obědů</h1>
       {summaries.length > 0 ? (
         <div className="space-y-2">
           {summaries.map((summary) => (
             <Link
               key={summary.id}
               to={`/summary/${summary.id}`}
-              className="flex justify-between items-center p-4 bg-white shadow-md rounded-lg hover:bg-gray-100 transition"
+              className="flex justify-between items-center p-4 bg-white shadow-md rounded-s hover:bg-gray-100 transition"
             >
               <span>
                 <div className="font-bold">{formatDate(summary.serving_date)}</div>{summary.description}

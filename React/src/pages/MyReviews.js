@@ -25,14 +25,14 @@ const MyReviews = () => {
 
   return (
     <div className="container mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-4">Moje hodnocení</h1>
+      <h1 className="text-4xl font-bold mb-4 text-center">Moje hodnocení</h1>
       {reviews.length > 0 ? (
         <div className="space-y-2">
           {reviews.map((review) => (
             <Link
               key={review.id}
               to={`/my-review/${review.id}`}
-              className="block p-4 bg-white shadow-md rounded-lg hover:bg-gray-100 transition"
+              className="block p-4 bg-white shadow-md rounded-s hover:bg-gray-100 transition"
             >
               <span className="font-bold">{formatDate(review.serving_date)}</span> - {review.description}
             </Link>

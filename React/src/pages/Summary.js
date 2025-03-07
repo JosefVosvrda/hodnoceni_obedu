@@ -40,7 +40,7 @@ const Summary = () => {
       <h1 className="text-2xl font-bold mb-4 text-center">{summary.description}</h1>
       <h2 className="text-xl font-semibold mb-2 text-center">{formatDate(summary.serving_date)}</h2>
       <h1 className={`text-5xl font-bold mb-4 text-center ${getScoreColor(summary.overall_score)}`}>{summary.overall_score}</h1>
-      <div className="bg-white shadow-md p-4 rounded-lg">
+      <div className="bg-white shadow-md p-4 rounded-s">
         <h2 className="text-xl font-semibold mb-2 font-bold">Polévka</h2>
         <p><strong>Průměrná kvalita:</strong> {summary.soup_quality_avg}</p>
         <h2 className="text-xl font-semibold mb-2 font-bold">Hlavní chod</h2>
